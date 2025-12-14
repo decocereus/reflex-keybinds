@@ -4,6 +4,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-prefix",
     tool: "tmux",
+    actionId: "prefix",
     action: "Prefix key",
     sequence: [{ modifiers: ["ctrl"], key: "b" }],
     category: "core",
@@ -12,6 +13,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-new-window",
     tool: "tmux",
+    actionId: "window.create",
     action: "Create new window",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "c" }],
     category: "window",
@@ -20,6 +22,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-next-window",
     tool: "tmux",
+    actionId: "window.next",
     action: "Next window",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "n" }],
     category: "window",
@@ -28,6 +31,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-prev-window",
     tool: "tmux",
+    actionId: "window.prev",
     action: "Previous window",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "p" }],
     category: "window",
@@ -36,6 +40,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-select-window-0",
     tool: "tmux",
+    actionId: "window.select.0",
     action: "Select window 0",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "0" }],
     category: "window",
@@ -44,6 +49,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-select-window-1",
     tool: "tmux",
+    actionId: "window.select.1",
     action: "Select window 1",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "1" }],
     category: "window",
@@ -52,6 +58,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-rename-window",
     tool: "tmux",
+    actionId: "window.rename",
     action: "Rename window",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "," }],
     category: "window",
@@ -60,6 +67,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-close-window",
     tool: "tmux",
+    actionId: "window.close",
     action: "Close window",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: ["shift"], key: "7" }],
     category: "window",
@@ -68,6 +76,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-split-horizontal",
     tool: "tmux",
+    actionId: "pane.split.horizontal",
     action: "Split pane horizontally",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: ["shift"], key: "5" }],
     category: "pane",
@@ -76,6 +85,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-split-vertical",
     tool: "tmux",
+    actionId: "pane.split.vertical",
     action: "Split pane vertically",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: ["shift"], key: "'" }],
     category: "pane",
@@ -84,6 +94,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-pane-left",
     tool: "tmux",
+    actionId: "pane.focus.left",
     action: "Move to left pane",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "left" }],
     category: "pane",
@@ -92,6 +103,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-pane-right",
     tool: "tmux",
+    actionId: "pane.focus.right",
     action: "Move to right pane",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "right" }],
     category: "pane",
@@ -100,6 +112,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-pane-up",
     tool: "tmux",
+    actionId: "pane.focus.up",
     action: "Move to pane above",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "up" }],
     category: "pane",
@@ -108,6 +121,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-pane-down",
     tool: "tmux",
+    actionId: "pane.focus.down",
     action: "Move to pane below",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "down" }],
     category: "pane",
@@ -116,6 +130,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-close-pane",
     tool: "tmux",
+    actionId: "pane.close",
     action: "Close current pane",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "x" }],
     category: "pane",
@@ -124,6 +139,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-zoom-pane",
     tool: "tmux",
+    actionId: "pane.zoom.toggle",
     action: "Toggle pane zoom",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "z" }],
     category: "pane",
@@ -132,6 +148,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-resize-pane-left",
     tool: "tmux",
+    actionId: "pane.resize.left",
     action: "Resize pane left",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: ["ctrl"], key: "left" }],
     category: "pane",
@@ -140,6 +157,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-resize-pane-right",
     tool: "tmux",
+    actionId: "pane.resize.right",
     action: "Resize pane right",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: ["ctrl"], key: "right" }],
     category: "pane",
@@ -148,6 +166,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-copy-mode",
     tool: "tmux",
+    actionId: "mode.copy",
     action: "Enter copy mode",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "[" }],
     category: "copy",
@@ -156,6 +175,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-paste",
     tool: "tmux",
+    actionId: "buffer.paste",
     action: "Paste buffer",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "]" }],
     category: "copy",
@@ -164,6 +184,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-new-session",
     tool: "tmux",
+    actionId: "session.create",
     action: "New session",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: ["shift"], key: ";" }],
     category: "session",
@@ -172,6 +193,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-detach",
     tool: "tmux",
+    actionId: "session.detach",
     action: "Detach from session",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "d" }],
     category: "session",
@@ -180,6 +202,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-list-sessions",
     tool: "tmux",
+    actionId: "session.list",
     action: "List sessions",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "s" }],
     category: "session",
@@ -188,6 +211,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-rename-session",
     tool: "tmux",
+    actionId: "session.rename",
     action: "Rename session",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: ["shift"], key: "4" }],
     category: "session",
@@ -196,6 +220,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-command-mode",
     tool: "tmux",
+    actionId: "mode.command",
     action: "Enter command mode",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: ["shift"], key: ";" }],
     category: "core",
@@ -204,6 +229,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-list-keys",
     tool: "tmux",
+    actionId: "keys.list",
     action: "List key bindings",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: ["shift"], key: "/" }],
     category: "core",
@@ -212,6 +238,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-swap-pane-down",
     tool: "tmux",
+    actionId: "pane.swap.down",
     action: "Swap pane down",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: ["shift"], key: "}" }],
     category: "pane",
@@ -220,6 +247,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-swap-pane-up",
     tool: "tmux",
+    actionId: "pane.swap.up",
     action: "Swap pane up",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: ["shift"], key: "{" }],
     category: "pane",
@@ -228,6 +256,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-last-window",
     tool: "tmux",
+    actionId: "window.last",
     action: "Last active window",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "l" }],
     category: "window",
@@ -236,6 +265,7 @@ const bindings: Binding[] = [
   {
     id: "tmux-find-window",
     tool: "tmux",
+    actionId: "window.find",
     action: "Find window",
     sequence: [{ modifiers: ["ctrl"], key: "b" }, { modifiers: [], key: "f" }],
     category: "window",

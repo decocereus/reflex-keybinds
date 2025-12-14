@@ -32,11 +32,11 @@ export function Challenge({
   
   useEffect(() => {
     const interval = setInterval(() => {
-      setElapsed(Date.now() - challenge.startTime);
+      setElapsed(Date.now() - challenge.startTimestamp);
     }, 100);
     
     return () => clearInterval(interval);
-  }, [challenge.startTime]);
+  }, [challenge.startTimestamp]);
   
   const formatTime = (ms: number) => {
     const seconds = Math.floor(ms / 1000);
