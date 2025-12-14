@@ -1,7 +1,7 @@
 "use client";
 
 import { useReducer, useCallback, useEffect, useRef, useState } from "react";
-import type { ToolDefinition, GameMode, KeyChord, SessionStats } from "@/types";
+import type { ToolDefinition, GameMode, KeyChord, SessionStats, Challenge } from "@/types";
 import { gameReducer, initialGameState, updateMastery, computeSessionStats } from "@/state";
 import { storage } from "@/state/storage";
 import { selectBinding, createChallenge, evaluateInput, createResult } from "@/engine";
@@ -28,11 +28,23 @@ export function useGame() {
   const persistedState = useRef(storage.load());
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoProgressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentChallengeRef = useRef<Challenge | null>(null);
+  const gameModeRef = useRef<GameMode>(gameMode);
+  
+  gameModeRef.current = gameMode;
+  
+  useEffect(() => {
+    if (state.type === "prompt" || state.type === "listening") {
+      currentChallengeRef.current = state.challenge;
+    }
+  }, [state]);
   
   const selectTool = useCallback((selectedTool: ToolDefinition) => {
     setTool(selectedTool);
     dispatch({ type: "SELECT_TOOL", tool: selectedTool });
   }, []);
+  
+  const nextChallengeInternalRef = useRef<() => void>(() => {});
   
   const startSessionWithTool = useCallback((selectedTool: ToolDefinition, mode: GameMode) => {
     const now = Date.now();
@@ -82,21 +94,23 @@ export function useGame() {
     dispatch({ type: "NEXT_CHALLENGE" });
     
     const now = Date.now();
-    const binding = selectBinding(tool, persistedState.current.mastery, gameMode);
-    const challenge = createChallenge(binding, gameMode, persistedState.current.settings, now);
+    const binding = selectBinding(tool, persistedState.current.mastery, gameModeRef.current);
+    const challenge = createChallenge(binding, gameModeRef.current, persistedState.current.settings, now);
     
     setTimeout(() => {
       dispatch({ type: "PRESENT_CHALLENGE", challenge });
     }, 100);
-  }, [tool, gameMode]);
+  }, [tool]);
+  
+  nextChallengeInternalRef.current = nextChallengeInternal;
   
   const handleInput = useCallback((chord: KeyChord, buffer: KeyChord[]) => {
-    if (state.type !== "prompt" && state.type !== "listening") return;
+    const challenge = currentChallengeRef.current;
+    if (!challenge) return;
     
     const now = Date.now();
     dispatch({ type: "INPUT_RECEIVED", chord, buffer, timestamp: now });
     
-    const challenge = state.type === "prompt" ? state.challenge : state.challenge;
     const matchResult = evaluateInput(challenge, buffer);
     
     setUserInput(buffer);
@@ -116,13 +130,13 @@ export function useGame() {
       
       setStats((prev) => computeSessionStats(prev, result));
       
-      if (gameMode === "scenario") {
+      if (gameModeRef.current === "scenario") {
         setFeedbackState("success");
         if (autoProgressTimeoutRef.current) {
           clearTimeout(autoProgressTimeoutRef.current);
         }
         autoProgressTimeoutRef.current = setTimeout(() => {
-          nextChallengeInternal();
+          nextChallengeInternalRef.current();
         }, 800);
       } else {
         dispatch({ type: "CHALLENGE_SUCCESS", result });
@@ -156,13 +170,13 @@ export function useGame() {
         
         setStats((prev) => computeSessionStats(prev, result));
         
-        if (gameMode === "scenario") {
+        if (gameModeRef.current === "scenario") {
           setFeedbackState("error");
           if (autoProgressTimeoutRef.current) {
             clearTimeout(autoProgressTimeoutRef.current);
           }
           autoProgressTimeoutRef.current = setTimeout(() => {
-            nextChallengeInternal();
+            nextChallengeInternalRef.current();
           }, 800);
         } else {
           dispatch({ type: "CHALLENGE_FAILED", reason: { type: "wrong", userInput: wrongInput } });
@@ -175,14 +189,15 @@ export function useGame() {
         setInputStatus("idle");
       }, 800);
     }
-  }, [state, gameMode, nextChallengeInternal]);
+  }, []);
   
   const nextChallenge = useCallback(() => {
     nextChallengeInternal();
   }, [nextChallengeInternal]);
   
   const skipChallenge = useCallback(() => {
-    if (state.type !== "prompt" && state.type !== "listening") return;
+    const challenge = currentChallengeRef.current;
+    if (!challenge) return;
     
     if (errorTimeoutRef.current) {
       clearTimeout(errorTimeoutRef.current);
@@ -194,7 +209,6 @@ export function useGame() {
     }
     
     const now = Date.now();
-    const challenge = state.type === "prompt" ? state.challenge : state.challenge;
     const result = createResult(challenge, [], false, now);
     
     persistedState.current = updateMastery(persistedState.current, result, now);
@@ -206,7 +220,7 @@ export function useGame() {
     setInputStatus("idle");
     setFeedbackState("none");
     
-    if (gameMode === "scenario") {
+    if (gameModeRef.current === "scenario") {
       nextChallengeInternal();
     } else {
       dispatch({ type: "CHALLENGE_FAILED", reason: { type: "skipped" } });
@@ -215,7 +229,7 @@ export function useGame() {
     if (inputManagerRef.current) {
       inputManagerRef.current.resetBuffer();
     }
-  }, [state, gameMode, nextChallengeInternal]);
+  }, [nextChallengeInternal]);
   
   const exitToMenu = useCallback(() => {
     if (errorTimeoutRef.current) {
@@ -230,11 +244,14 @@ export function useGame() {
     setUserInput([]);
     setInputStatus("idle");
     setFeedbackState("none");
+    currentChallengeRef.current = null;
     dispatch({ type: "EXIT_TO_MENU" });
   }, []);
   
+  const isInSession = state.type === "prompt" || state.type === "listening" || state.type === "success" || state.type === "failed";
+  
   useEffect(() => {
-    if (state.type !== "prompt" && state.type !== "listening") {
+    if (!isInSession) {
       return;
     }
     
@@ -254,7 +271,7 @@ export function useGame() {
       inputManagerRef.current?.destroy();
       inputManagerRef.current = null;
     };
-  }, [state.type, handleInput]);
+  }, [isInSession, handleInput]);
   
   useEffect(() => {
     return () => {
