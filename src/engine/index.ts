@@ -7,9 +7,14 @@ import type {
   MasteryRecord,
   GameMode,
   ContextRule,
+  GameSettings,
+  ChallengeUIHints,
 } from "@/types";
 import { sequenceMatches } from "@/input";
 import { getMasteryScore } from "@/state";
+
+export { matchSequence, matchWithAmbiguity, computeUIHints, transition } from "./core";
+export type { EngineEvent, Effect, EngineResult } from "./core";
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
@@ -57,9 +62,23 @@ export function selectBinding(
   return topCandidates[randomIndex].binding;
 }
 
+function computeUIHintsForChallenge(mode: GameMode, settings: GameSettings): ChallengeUIHints {
+  const showBinding = mode === "scenario" || settings.assistMode;
+  return {
+    showBinding,
+    showHint: settings.assistMode && mode === "reflex",
+    instructionText: mode === "scenario"
+      ? "keybinding to learn"
+      : settings.assistMode
+        ? "hint"
+        : undefined,
+  };
+}
+
 export function createChallenge(
   binding: Binding,
-  mode: GameMode
+  mode: GameMode,
+  settings: GameSettings = { assistMode: false, reducedMotion: false, sequenceTimeout: 1000, challengeTimeout: null }
 ): Challenge {
   const prompt = mode === "reflex"
     ? binding.action
@@ -71,6 +90,7 @@ export function createChallenge(
     prompt,
     context: mode === "scenario" ? generateContext(binding) : undefined,
     startTime: Date.now(),
+    uiHints: computeUIHintsForChallenge(mode, settings),
   };
 }
 

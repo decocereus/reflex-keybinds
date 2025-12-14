@@ -1,4 +1,4 @@
-import type { ToolDefinition, Binding, KeyChord, Modifier, Key } from "@/types";
+import type { ToolDefinition, Binding, KeyChord, Modifier, Key, CategoryId } from "@/types";
 
 function parseKey(keyStr: string): { modifiers: Modifier[]; key: Key } {
   const parts = keyStr.toLowerCase().split("+");
@@ -241,7 +241,7 @@ const rawBindings: Array<{ key: string; command: string; when?: string }> = [
   { key: "alt+cmd+w", command: "toggleFindWholeWord", when: "editorFocus" },
 ];
 
-function categorizeCommand(command: string): string {
+function categorizeCommand(command: string): CategoryId {
   if (command.includes("cursor") || command.includes("navigate") || command.includes("goto") || command.includes("scroll")) return "navigation";
   if (command.includes("find") || command.includes("search") || command.includes("replace")) return "search";
   if (command.includes("delete") || command.includes("copy") || command.includes("cut") || command.includes("paste") || command.includes("undo") || command.includes("redo") || command.includes("comment") || command.includes("indent") || command.includes("format") || command.includes("fold") || command.includes("unfold") || command.includes("Line") || command.includes("insert")) return "edit";

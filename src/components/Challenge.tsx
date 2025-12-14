@@ -1,7 +1,7 @@
 "use client";
 
 import type { Challenge as ChallengeType, SessionStats, GameSettings, KeyChord, GameMode } from "@/types";
-import { formatSequence, formatChord } from "@/input";
+import { formatChord, chordsEqual } from "@/input";
 import { useEffect, useState } from "react";
 import { KeyDisplay } from "./KeyDisplay";
 
@@ -44,7 +44,7 @@ export function Challenge({
     return `${seconds}.${tenths}s`;
   };
 
-  const showBinding = gameMode === "scenario" || settings.assistMode;
+  const { showBinding, instructionText } = challenge.uiHints;
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -86,13 +86,7 @@ export function Challenge({
             {challenge.prompt}
           </div>
 
-          {gameMode === "scenario" && (
-            <div className="text-sm text-muted-foreground mb-6 max-w-md">
-              Press the keybinding shown below to perform this action
-            </div>
-          )}
-
-          {gameMode === "reflex" && !settings.assistMode && (
+          {!showBinding && (
             <div className="text-sm text-muted-foreground mb-6">
               Recall and press the correct keybinding
             </div>
@@ -100,13 +94,15 @@ export function Challenge({
           
           {showBinding && (
             <div className="mb-6 p-4 border border-accent/30 bg-accent/5">
-              <div className="text-xs text-muted-foreground mb-3">
-                {gameMode === "scenario" ? "keybinding to learn" : "hint"}
-              </div>
+              {instructionText && (
+                <div className="text-xs text-muted-foreground mb-3">
+                  {instructionText}
+                </div>
+              )}
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 {challenge.binding.sequence.map((chord, idx) => {
                   const isPressed = idx < userInput.length;
-                  const isCorrect = isPressed && JSON.stringify(userInput[idx]) === JSON.stringify(chord);
+                  const isCorrect = isPressed && chordsEqual(userInput[idx], chord);
                   const isWrong = isPressed && !isCorrect;
                   const isCurrent = idx === userInput.length;
                   

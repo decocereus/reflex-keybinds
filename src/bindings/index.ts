@@ -1,4 +1,5 @@
 import type { ToolDefinition, ToolId } from "@/types";
+import { Tools } from "@/types";
 import { vim } from "./vim";
 import { vscode } from "./vscode";
 import { tmux } from "./tmux";
@@ -18,7 +19,7 @@ export function getAllTools(): ToolDefinition[] {
 }
 
 export function getToolIds(): ToolId[] {
-  return Object.keys(tools);
+  return [...Tools];
 }
 
 export { vim, vscode, tmux };

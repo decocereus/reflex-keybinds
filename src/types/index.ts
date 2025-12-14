@@ -1,3 +1,39 @@
+// Closed registries
+export const Tools = ["vim", "vscode", "tmux"] as const;
+export type ToolId = (typeof Tools)[number];
+
+export const VimModes = ["normal", "insert", "visual", "command"] as const;
+export const TmuxModes = [] as const;
+export const VSCodeModes = [] as const;
+export type VimModeId = (typeof VimModes)[number];
+export type ModeId = VimModeId | string; // Allow string for extensibility, but prefer closed unions
+
+export const Categories = [
+  "motion",
+  "edit",
+  "mode",
+  "search",
+  "window",
+  "pane",
+  "file",
+  "navigation",
+  "view",
+  "command",
+  "mark",
+  "core",
+  "copy",
+  "session",
+  "debug",
+  "terminal",
+  "editor",
+  "intellisense",
+  "refactor",
+  "ai",
+  "general",
+  "unknown",
+] as const;
+export type CategoryId = (typeof Categories)[number];
+
 export type Modifier = "ctrl" | "shift" | "alt" | "meta";
 
 export type Key =
@@ -17,10 +53,6 @@ export type KeyChord = {
   key: Key;
 };
 
-export type ToolId = string;
-export type ModeId = string;
-export type CategoryId = string;
-
 export type ContextRule =
   | { type: "mode"; value: ModeId }
   | { type: "cursor"; value: "start" | "middle" | "end" }
@@ -32,6 +64,7 @@ export type Binding = {
   id: string;
   tool: ToolId;
   mode?: ModeId;
+  actionId?: string;
   action: string;
   sequence: KeyChord[];
   category: CategoryId;
@@ -57,12 +90,19 @@ export type ToolDefinition = {
   };
 };
 
+export type ChallengeUIHints = {
+  showBinding: boolean;
+  showHint: boolean;
+  instructionText?: string;
+};
+
 export type Challenge = {
   id: string;
   binding: Binding;
   prompt: string;
   context?: Record<string, unknown>;
   startTime: number;
+  uiHints: ChallengeUIHints;
 };
 
 export type Result = {
@@ -84,6 +124,7 @@ export type InputBuffer = {
   lastInputTime: number;
 };
 
+// FSM states - explicit discriminated union
 export type GameState =
   | { type: "idle" }
   | { type: "loading" }
@@ -102,6 +143,12 @@ export type GameSettings = {
   sequenceTimeout: number;
   challengeTimeout: number | null;
 };
+
+// Input matching result with ambiguity support
+export type MatchResult =
+  | { type: "none" }
+  | { type: "partial"; possibleBindings?: string[] }
+  | { type: "exact"; bindingId: string };
 
 export type MasteryRecord = {
   bindingId: string;

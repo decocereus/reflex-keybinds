@@ -46,7 +46,7 @@ export function useGame() {
     dispatch({ type: "START_SESSION" });
     
     const binding = selectBinding(selectedTool, persistedState.current.mastery, mode);
-    const challenge = createChallenge(binding, mode);
+    const challenge = createChallenge(binding, mode, persistedState.current.settings);
     
     setTimeout(() => {
       dispatch({ type: "PRESENT_CHALLENGE", challenge });
@@ -136,7 +136,7 @@ export function useGame() {
     dispatch({ type: "NEXT_CHALLENGE" });
     
     const binding = selectBinding(tool, persistedState.current.mastery, gameMode);
-    const challenge = createChallenge(binding, gameMode);
+    const challenge = createChallenge(binding, gameMode, persistedState.current.settings);
     
     setTimeout(() => {
       dispatch({ type: "PRESENT_CHALLENGE", challenge });
