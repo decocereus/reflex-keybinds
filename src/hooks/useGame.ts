@@ -8,6 +8,7 @@ import { selectBinding, createChallenge, evaluateInput, createResult } from "@/e
 import { createInputManager } from "@/input";
 
 type InputStatus = "idle" | "partial" | "success" | "error";
+type FeedbackState = "none" | "success" | "error";
 
 export function useGame() {
   const [state, dispatch] = useReducer(gameReducer, initialGameState);
@@ -21,10 +22,12 @@ export function useGame() {
   });
   const [userInput, setUserInput] = useState<KeyChord[]>([]);
   const [inputStatus, setInputStatus] = useState<InputStatus>("idle");
+  const [feedbackState, setFeedbackState] = useState<FeedbackState>("none");
   
   const inputManagerRef = useRef<ReturnType<typeof createInputManager> | null>(null);
   const persistedState = useRef(storage.load());
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoProgressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const selectTool = useCallback((selectedTool: ToolDefinition) => {
     setTool(selectedTool);
@@ -43,6 +46,7 @@ export function useGame() {
     });
     setUserInput([]);
     setInputStatus("idle");
+    setFeedbackState("none");
     
     dispatch({ type: "START_SESSION" });
     
@@ -59,6 +63,33 @@ export function useGame() {
     startSessionWithTool(tool, mode);
   }, [tool, startSessionWithTool]);
   
+  const nextChallengeInternal = useCallback(() => {
+    if (!tool) return;
+    
+    if (errorTimeoutRef.current) {
+      clearTimeout(errorTimeoutRef.current);
+      errorTimeoutRef.current = null;
+    }
+    if (autoProgressTimeoutRef.current) {
+      clearTimeout(autoProgressTimeoutRef.current);
+      autoProgressTimeoutRef.current = null;
+    }
+    
+    setUserInput([]);
+    setInputStatus("idle");
+    setFeedbackState("none");
+    
+    dispatch({ type: "NEXT_CHALLENGE" });
+    
+    const now = Date.now();
+    const binding = selectBinding(tool, persistedState.current.mastery, gameMode);
+    const challenge = createChallenge(binding, gameMode, persistedState.current.settings, now);
+    
+    setTimeout(() => {
+      dispatch({ type: "PRESENT_CHALLENGE", challenge });
+    }, 100);
+  }, [tool, gameMode]);
+  
   const handleInput = useCallback((chord: KeyChord, buffer: KeyChord[]) => {
     if (state.type !== "prompt" && state.type !== "listening") return;
     
@@ -72,6 +103,12 @@ export function useGame() {
     
     if (matchResult === "complete") {
       setInputStatus("success");
+      
+      if (errorTimeoutRef.current) {
+        clearTimeout(errorTimeoutRef.current);
+        errorTimeoutRef.current = null;
+      }
+      
       const result = createResult(challenge, buffer, true, now);
       
       persistedState.current = updateMastery(persistedState.current, result, now);
@@ -79,13 +116,28 @@ export function useGame() {
       
       setStats((prev) => computeSessionStats(prev, result));
       
-      dispatch({ type: "CHALLENGE_SUCCESS", result });
+      if (gameMode === "scenario") {
+        setFeedbackState("success");
+        if (autoProgressTimeoutRef.current) {
+          clearTimeout(autoProgressTimeoutRef.current);
+        }
+        autoProgressTimeoutRef.current = setTimeout(() => {
+          nextChallengeInternal();
+        }, 800);
+      } else {
+        dispatch({ type: "CHALLENGE_SUCCESS", result });
+      }
       
       if (inputManagerRef.current) {
         inputManagerRef.current.resetBuffer();
       }
     } else if (matchResult === "partial") {
       setInputStatus("partial");
+      
+      if (errorTimeoutRef.current) {
+        clearTimeout(errorTimeoutRef.current);
+        errorTimeoutRef.current = null;
+      }
     } else if (matchResult === "none") {
       setInputStatus("error");
       
@@ -104,7 +156,17 @@ export function useGame() {
         
         setStats((prev) => computeSessionStats(prev, result));
         
-        dispatch({ type: "CHALLENGE_FAILED", reason: { type: "wrong", userInput: wrongInput } });
+        if (gameMode === "scenario") {
+          setFeedbackState("error");
+          if (autoProgressTimeoutRef.current) {
+            clearTimeout(autoProgressTimeoutRef.current);
+          }
+          autoProgressTimeoutRef.current = setTimeout(() => {
+            nextChallengeInternal();
+          }, 800);
+        } else {
+          dispatch({ type: "CHALLENGE_FAILED", reason: { type: "wrong", userInput: wrongInput } });
+        }
         
         if (inputManagerRef.current) {
           inputManagerRef.current.resetBuffer();
@@ -113,29 +175,11 @@ export function useGame() {
         setInputStatus("idle");
       }, 800);
     }
-  }, [state]);
+  }, [state, gameMode, nextChallengeInternal]);
   
   const nextChallenge = useCallback(() => {
-    if (!tool) return;
-    
-    if (errorTimeoutRef.current) {
-      clearTimeout(errorTimeoutRef.current);
-      errorTimeoutRef.current = null;
-    }
-    
-    setUserInput([]);
-    setInputStatus("idle");
-    
-    dispatch({ type: "NEXT_CHALLENGE" });
-    
-    const now = Date.now();
-    const binding = selectBinding(tool, persistedState.current.mastery, gameMode);
-    const challenge = createChallenge(binding, gameMode, persistedState.current.settings, now);
-    
-    setTimeout(() => {
-      dispatch({ type: "PRESENT_CHALLENGE", challenge });
-    }, 100);
-  }, [tool, gameMode]);
+    nextChallengeInternal();
+  }, [nextChallengeInternal]);
   
   const skipChallenge = useCallback(() => {
     if (state.type !== "prompt" && state.type !== "listening") return;
@@ -143,6 +187,10 @@ export function useGame() {
     if (errorTimeoutRef.current) {
       clearTimeout(errorTimeoutRef.current);
       errorTimeoutRef.current = null;
+    }
+    if (autoProgressTimeoutRef.current) {
+      clearTimeout(autoProgressTimeoutRef.current);
+      autoProgressTimeoutRef.current = null;
     }
     
     const now = Date.now();
@@ -156,22 +204,32 @@ export function useGame() {
     
     setUserInput([]);
     setInputStatus("idle");
+    setFeedbackState("none");
     
-    dispatch({ type: "CHALLENGE_FAILED", reason: { type: "skipped" } });
+    if (gameMode === "scenario") {
+      nextChallengeInternal();
+    } else {
+      dispatch({ type: "CHALLENGE_FAILED", reason: { type: "skipped" } });
+    }
     
     if (inputManagerRef.current) {
       inputManagerRef.current.resetBuffer();
     }
-  }, [state]);
+  }, [state, gameMode, nextChallengeInternal]);
   
   const exitToMenu = useCallback(() => {
     if (errorTimeoutRef.current) {
       clearTimeout(errorTimeoutRef.current);
       errorTimeoutRef.current = null;
     }
+    if (autoProgressTimeoutRef.current) {
+      clearTimeout(autoProgressTimeoutRef.current);
+      autoProgressTimeoutRef.current = null;
+    }
     setTool(null);
     setUserInput([]);
     setInputStatus("idle");
+    setFeedbackState("none");
     dispatch({ type: "EXIT_TO_MENU" });
   }, []);
   
@@ -203,6 +261,9 @@ export function useGame() {
       if (errorTimeoutRef.current) {
         clearTimeout(errorTimeoutRef.current);
       }
+      if (autoProgressTimeoutRef.current) {
+        clearTimeout(autoProgressTimeoutRef.current);
+      }
     };
   }, []);
   
@@ -214,6 +275,7 @@ export function useGame() {
     settings: persistedState.current.settings,
     userInput,
     inputStatus,
+    feedbackState,
     selectTool,
     startSession,
     startSessionWithTool,

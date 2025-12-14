@@ -18,7 +18,7 @@ const CURRENT_VERSION = 1;
 const DEFAULT_SETTINGS: GameSettings = {
   assistMode: false,
   reducedMotion: false,
-  sequenceTimeout: 1000,
+  sequenceTimeout: 1500,
   challengeTimeout: null,
 };
 

@@ -5,6 +5,8 @@ import { formatChord, chordsEqual } from "@/input";
 import { useEffect, useState } from "react";
 import { KeyDisplay } from "./KeyDisplay";
 
+type FeedbackState = "none" | "success" | "error";
+
 type ChallengeProps = {
   challenge: ChallengeType;
   stats: SessionStats;
@@ -13,6 +15,7 @@ type ChallengeProps = {
   isListening: boolean;
   userInput: KeyChord[];
   inputStatus: "idle" | "partial" | "success" | "error";
+  feedbackState?: FeedbackState;
   onSkip: () => void;
   onExit: () => void;
 };
@@ -25,6 +28,7 @@ export function Challenge({
   isListening,
   userInput,
   inputStatus,
+  feedbackState = "none",
   onSkip, 
   onExit 
 }: ChallengeProps) {
@@ -46,6 +50,18 @@ export function Challenge({
 
   const { showBinding, instructionText } = challenge.uiHints;
   
+  const getBorderColor = () => {
+    if (feedbackState === "success") return "border-success";
+    if (feedbackState === "error") return "border-error";
+    return "border-accent/30";
+  };
+  
+  const getBgColor = () => {
+    if (feedbackState === "success") return "bg-success/10";
+    if (feedbackState === "error") return "bg-error/10";
+    return "bg-accent/5";
+  };
+  
   return (
     <div className="flex flex-col min-h-screen">
       <header className="flex items-center justify-between px-6 py-4 border-b border-border">
@@ -57,12 +73,16 @@ export function Challenge({
         </button>
         
         <div className="flex items-center gap-4">
-          <div className={`px-2 py-1 text-xs font-medium uppercase tracking-wider ${
-            gameMode === "reflex" 
-              ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-              : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+          <div className={`px-2 py-1 text-xs font-medium uppercase tracking-wider transition-colors ${
+            feedbackState === "success"
+              ? "bg-success/20 text-success border border-success/30"
+              : feedbackState === "error"
+                ? "bg-error/20 text-error border border-error/30"
+                : gameMode === "reflex" 
+                  ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                  : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
           }`}>
-            {gameMode}
+            {feedbackState === "success" ? "correct!" : feedbackState === "error" ? "wrong" : gameMode}
           </div>
           
           <div className="flex items-center gap-6 text-xs text-muted-foreground">
@@ -82,7 +102,9 @@ export function Challenge({
             </div>
           )}
           
-          <div className="text-3xl font-bold mb-4 leading-tight">
+          <div className={`text-3xl font-bold mb-4 leading-tight transition-colors ${
+            feedbackState === "success" ? "text-success" : feedbackState === "error" ? "text-error" : ""
+          }`}>
             {challenge.prompt}
           </div>
 
@@ -93,7 +115,7 @@ export function Challenge({
           )}
           
           {showBinding && (
-            <div className="mb-6 p-4 border border-accent/30 bg-accent/5">
+            <div className={`mb-6 p-4 border transition-colors ${getBorderColor()} ${getBgColor()}`}>
               {instructionText && (
                 <div className="text-xs text-muted-foreground mb-3">
                   {instructionText}
@@ -106,18 +128,23 @@ export function Challenge({
                   const isWrong = isPressed && !isCorrect;
                   const isCurrent = idx === userInput.length;
                   
+                  let chordStyle = "border-border bg-muted/30 text-foreground";
+                  if (feedbackState === "success") {
+                    chordStyle = "border-success bg-success/20 text-success";
+                  } else if (feedbackState === "error" && isWrong) {
+                    chordStyle = "border-error bg-error/20 text-error";
+                  } else if (isWrong) {
+                    chordStyle = "border-error bg-error/20 text-error";
+                  } else if (isCorrect) {
+                    chordStyle = "border-success bg-success/20 text-success";
+                  } else if (isCurrent) {
+                    chordStyle = "border-accent bg-accent/10 text-accent animate-pulse";
+                  }
+                  
                   return (
                     <div key={idx} className="flex items-center gap-2">
                       {idx > 0 && <span className="text-muted-foreground text-xs">then</span>}
-                      <span className={`px-4 py-2 border font-mono text-sm transition-all ${
-                        isWrong 
-                          ? "border-error bg-error/20 text-error"
-                          : isCorrect
-                            ? "border-success bg-success/20 text-success"
-                            : isCurrent
-                              ? "border-accent bg-accent/10 text-accent animate-pulse"
-                              : "border-border bg-muted/30 text-foreground"
-                      }`}>
+                      <span className={`px-4 py-2 border font-mono text-sm transition-all ${chordStyle}`}>
                         {formatChord(chord)}
                       </span>
                     </div>
@@ -141,7 +168,11 @@ export function Challenge({
           <div className={`text-sm transition-colors ${
             isListening ? 'text-accent' : 'text-muted-foreground'
           }`}>
-            {inputStatus === "error" ? (
+            {feedbackState === "success" ? (
+              <span className="text-success">correct! loading next...</span>
+            ) : feedbackState === "error" ? (
+              <span className="text-error">wrong key — loading next...</span>
+            ) : inputStatus === "error" ? (
               <span className="text-error">wrong key — try again</span>
             ) : isListening ? (
               <span className="animate-pulse-glow">listening...</span>

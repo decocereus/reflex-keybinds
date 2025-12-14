@@ -78,7 +78,7 @@ function computeUIHintsForChallenge(mode: GameMode, settings: GameSettings): Cha
 export function createChallenge(
   binding: Binding,
   mode: GameMode,
-  settings: GameSettings = { assistMode: false, reducedMotion: false, sequenceTimeout: 1000, challengeTimeout: null },
+  settings: GameSettings = { assistMode: false, reducedMotion: false, sequenceTimeout: 1500, challengeTimeout: null },
   timestamp: number = Date.now()
 ): Challenge {
   const prompt = mode === "reflex"

@@ -17,6 +17,7 @@ export function GameController() {
     settings,
     userInput,
     inputStatus,
+    feedbackState,
     selectTool,
     startSessionWithTool,
     nextChallenge,
@@ -90,6 +91,7 @@ export function GameController() {
             isListening={state.type === "listening"}
             userInput={userInput}
             inputStatus={inputStatus}
+            feedbackState={feedbackState}
             onSkip={skipChallenge}
             onExit={exitToMenu}
           />
