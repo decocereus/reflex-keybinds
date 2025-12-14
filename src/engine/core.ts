@@ -17,10 +17,10 @@ export type EngineEvent =
   | { type: "SELECT_TOOL"; tool: ToolDefinition }
   | { type: "START_SESSION"; tool: ToolDefinition; mode: GameMode }
   | { type: "PRESENT_CHALLENGE"; challenge: Challenge }
-  | { type: "KEY_INPUT"; chord: KeyChord }
+  | { type: "KEY_INPUT"; chord: KeyChord; timestamp: number }
   | { type: "SEQUENCE_TIMEOUT" }
   | { type: "CHALLENGE_TIMEOUT" }
-  | { type: "SKIP" }
+  | { type: "SKIP"; timestamp: number }
   | { type: "EXIT_TO_MENU" }
   | { type: "NEXT_CHALLENGE" };
 
@@ -35,41 +35,39 @@ export type EngineResult = {
   effects: Effect[];
 };
 
-export function matchSequence(input: KeyChord[], target: KeyChord[]): MatchResult {
-  if (input.length === 0) return { type: "none" };
-  if (input.length > target.length) return { type: "none" };
+export function matchSequence(input: KeyChord[], target: KeyChord[]): "none" | "partial" | "exact" {
+  if (input.length === 0) return "none";
+  if (input.length > target.length) return "none";
 
   for (let i = 0; i < input.length; i++) {
     if (!chordsEqual(input[i], target[i])) {
-      return { type: "none" };
+      return "none";
     }
   }
 
-  return input.length === target.length
-    ? { type: "exact", bindingId: "" }
-    : { type: "partial" };
+  return input.length === target.length ? "exact" : "partial";
 }
 
 export function matchWithAmbiguity(
   input: KeyChord[],
-  target: KeyChord[],
+  targetBinding: Binding,
   allBindings: Binding[]
 ): MatchResult {
-  const directMatch = matchSequence(input, target);
+  const directMatch = matchSequence(input, targetBinding.sequence);
 
-  if (directMatch.type === "exact") {
-    return directMatch;
+  if (directMatch === "exact") {
+    return { type: "exact", bindingId: targetBinding.id };
   }
 
-  if (directMatch.type === "partial") {
-    const possibleBindings = allBindings
+  if (directMatch === "partial") {
+    const candidates = allBindings
       .filter((b) => {
         const match = matchSequence(input, b.sequence);
-        return match.type === "partial" || match.type === "exact";
+        return match === "partial" || match === "exact";
       })
       .map((b) => b.id);
 
-    return { type: "partial", possibleBindings };
+    return { type: "partial", candidates };
   }
 
   return { type: "none" };
@@ -91,7 +89,8 @@ export function computeUIHints(mode: GameMode, assistMode: boolean): ChallengeUI
 export function createChallengeWithHints(
   binding: Binding,
   mode: GameMode,
-  assistMode: boolean
+  assistMode: boolean,
+  timestamp: number
 ): Challenge {
   const prompt = mode === "reflex" ? binding.action : generateScenarioPrompt(binding);
   const uiHints = computeUIHints(mode, assistMode);
@@ -101,7 +100,7 @@ export function createChallengeWithHints(
     binding,
     prompt,
     context: mode === "scenario" ? generateContext(binding) : undefined,
-    startTime: Date.now(),
+    startTimestamp: timestamp,
     uiHints,
   };
 }
@@ -187,11 +186,11 @@ export function transition(
       const newBuffer = [...context.buffer, event.chord];
       const matchResult = matchSequence(newBuffer, challenge.binding.sequence);
 
-      if (matchResult.type === "exact") {
+      if (matchResult === "exact") {
         const result: Result = {
           challengeId: challenge.id,
           bindingId: challenge.binding.id,
-          reactionMs: Date.now() - challenge.startTime,
+          reactionMs: event.timestamp - challenge.startTimestamp,
           success: true,
           inputSequence: newBuffer,
         };
@@ -199,12 +198,12 @@ export function transition(
         return { state: { type: "success", result }, effects };
       }
 
-      if (matchResult.type === "partial") {
+      if (matchResult === "partial") {
         return {
           state: {
             type: "listening",
             challenge,
-            buffer: { sequence: newBuffer, lastInputTime: Date.now() },
+            buffer: { sequence: newBuffer, lastInputTime: event.timestamp },
           },
           effects,
         };
@@ -213,7 +212,7 @@ export function transition(
       const failResult: Result = {
         challengeId: challenge.id,
         bindingId: challenge.binding.id,
-        reactionMs: Date.now() - challenge.startTime,
+        reactionMs: event.timestamp - challenge.startTimestamp,
         success: false,
         inputSequence: newBuffer,
       };

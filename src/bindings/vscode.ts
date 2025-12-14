@@ -59,7 +59,14 @@ function parseKeySequence(keyStr: string): KeyChord[] {
   return parts.map(part => parseKey(part));
 }
 
-const rawBindings: Array<{ key: string; command: string; when?: string }> = [
+type RawBinding = {
+  key: string;
+  command: string;
+  when?: string;
+  categoryOverride?: CategoryId;
+};
+
+const rawBindings: RawBinding[] = [
   { key: "escape escape", command: "workbench.action.exitZenMode", when: "inZenMode" },
   { key: "cmd+down", command: "cursorBottom", when: "textInputFocus" },
   { key: "shift+cmd+down", command: "cursorBottomSelect", when: "textInputFocus" },
@@ -290,12 +297,17 @@ const bindings: Binding[] = rawBindings
       id = `${id}-${i}`;
     }
     seenIds.add(id);
+    
+    const inferredCategory = categorizeCommand(b.command);
+    
     return {
       id,
       tool: "vscode" as const,
+      actionId: b.command,
       action: humanizeCommand(b.command),
       sequence,
-      category: categorizeCommand(b.command),
+      category: b.categoryOverride ?? inferredCategory,
+      categoryOverride: b.categoryOverride,
       difficulty: getDifficulty(sequence),
     };
   });

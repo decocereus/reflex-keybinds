@@ -1,30 +1,45 @@
-import type { Metadata } from "next";
-import { JetBrains_Mono } from "next/font/google";
-import "./globals.css";
-import { VisualEditsMessenger } from "orchids-visual-edits";
+import type React from "react"
+import type { Metadata } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
+import "./globals.css"
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
+const _geist = Geist({ subsets: ["latin"] })
+const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "keybind.trainer",
-  description: "Muscle memory through repetition - a data-driven keybinding trainer",
-};
+  title: "Keybinding Trainer - Master Your Shortcuts",
+  description:
+    "Learn and memorize essential keyboard shortcuts for Vim, VS Code, and more through interactive practice",
+  generator: "v0.app",
+  icons: {
+    icon: [
+      {
+        url: "/icon-light-32x32.png",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/icon-dark-32x32.png",
+        media: "(prefers-color-scheme: dark)",
+      },
+      {
+        url: "/icon.svg",
+        type: "image/svg+xml",
+      },
+    ],
+    apple: "/apple-icon.png",
+  },
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="en">
-      <body className={`${jetbrainsMono.variable} antialiased dark`}>
+      <body className={`font-sans antialiased`}>
         {children}
-        <VisualEditsMessenger />
       </body>
     </html>
-  );
+  )
 }

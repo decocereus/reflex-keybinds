@@ -2,7 +2,7 @@
 
 import { useReducer, useCallback, useEffect, useRef, useState } from "react";
 import type { ToolDefinition, GameMode, KeyChord, SessionStats } from "@/types";
-import { gameReducer, initialGameState, updateMastery } from "@/state";
+import { gameReducer, initialGameState, updateMastery, computeSessionStats } from "@/state";
 import { storage } from "@/state/storage";
 import { selectBinding, createChallenge, evaluateInput, createResult } from "@/engine";
 import { createInputManager } from "@/input";
@@ -32,13 +32,14 @@ export function useGame() {
   }, []);
   
   const startSessionWithTool = useCallback((selectedTool: ToolDefinition, mode: GameMode) => {
+    const now = Date.now();
     setTool(selectedTool);
     setGameMode(mode);
     setStats({
       totalAttempts: 0,
       correctAttempts: 0,
       avgReactionMs: 0,
-      startTime: Date.now(),
+      startTime: now,
     });
     setUserInput([]);
     setInputStatus("idle");
@@ -46,7 +47,7 @@ export function useGame() {
     dispatch({ type: "START_SESSION" });
     
     const binding = selectBinding(selectedTool, persistedState.current.mastery, mode);
-    const challenge = createChallenge(binding, mode, persistedState.current.settings);
+    const challenge = createChallenge(binding, mode, persistedState.current.settings, now);
     
     setTimeout(() => {
       dispatch({ type: "PRESENT_CHALLENGE", challenge });
@@ -61,7 +62,8 @@ export function useGame() {
   const handleInput = useCallback((chord: KeyChord, buffer: KeyChord[]) => {
     if (state.type !== "prompt" && state.type !== "listening") return;
     
-    dispatch({ type: "INPUT_RECEIVED", chord, buffer });
+    const now = Date.now();
+    dispatch({ type: "INPUT_RECEIVED", chord, buffer, timestamp: now });
     
     const challenge = state.type === "prompt" ? state.challenge : state.challenge;
     const matchResult = evaluateInput(challenge, buffer);
@@ -70,19 +72,12 @@ export function useGame() {
     
     if (matchResult === "complete") {
       setInputStatus("success");
-      const result = createResult(challenge, buffer, true);
+      const result = createResult(challenge, buffer, true, now);
       
-      persistedState.current = updateMastery(persistedState.current, result);
+      persistedState.current = updateMastery(persistedState.current, result, now);
       storage.save(persistedState.current);
       
-      setStats((prev) => ({
-        ...prev,
-        totalAttempts: prev.totalAttempts + 1,
-        correctAttempts: prev.correctAttempts + 1,
-        avgReactionMs:
-          (prev.avgReactionMs * prev.correctAttempts + result.reactionMs) /
-          (prev.correctAttempts + 1),
-      }));
+      setStats((prev) => computeSessionStats(prev, result));
       
       dispatch({ type: "CHALLENGE_SUCCESS", result });
       
@@ -101,15 +96,13 @@ export function useGame() {
       }
       
       errorTimeoutRef.current = setTimeout(() => {
-        const result = createResult(challenge, wrongInput, false);
+        const errorNow = Date.now();
+        const result = createResult(challenge, wrongInput, false, errorNow);
         
-        persistedState.current = updateMastery(persistedState.current, result);
+        persistedState.current = updateMastery(persistedState.current, result, errorNow);
         storage.save(persistedState.current);
         
-        setStats((prev) => ({
-          ...prev,
-          totalAttempts: prev.totalAttempts + 1,
-        }));
+        setStats((prev) => computeSessionStats(prev, result));
         
         dispatch({ type: "CHALLENGE_FAILED", reason: { type: "wrong", userInput: wrongInput } });
         
@@ -135,8 +128,9 @@ export function useGame() {
     
     dispatch({ type: "NEXT_CHALLENGE" });
     
+    const now = Date.now();
     const binding = selectBinding(tool, persistedState.current.mastery, gameMode);
-    const challenge = createChallenge(binding, gameMode, persistedState.current.settings);
+    const challenge = createChallenge(binding, gameMode, persistedState.current.settings, now);
     
     setTimeout(() => {
       dispatch({ type: "PRESENT_CHALLENGE", challenge });
@@ -151,16 +145,14 @@ export function useGame() {
       errorTimeoutRef.current = null;
     }
     
+    const now = Date.now();
     const challenge = state.type === "prompt" ? state.challenge : state.challenge;
-    const result = createResult(challenge, [], false);
+    const result = createResult(challenge, [], false, now);
     
-    persistedState.current = updateMastery(persistedState.current, result);
+    persistedState.current = updateMastery(persistedState.current, result, now);
     storage.save(persistedState.current);
     
-    setStats((prev) => ({
-      ...prev,
-      totalAttempts: prev.totalAttempts + 1,
-    }));
+    setStats((prev) => computeSessionStats(prev, result));
     
     setUserInput([]);
     setInputStatus("idle");
@@ -197,7 +189,6 @@ export function useGame() {
       inputManagerRef.current?.handleKeyDown(e);
     };
     
-    // Use capture phase to intercept events before browser handles them
     window.addEventListener("keydown", handler, { capture: true });
     
     return () => {

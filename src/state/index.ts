@@ -9,6 +9,7 @@ import type {
   FailureReason,
   KeyChord,
   InputBuffer,
+  SessionStats,
 } from "@/types";
 
 const STORAGE_KEY = "keybind-trainer-state";
@@ -76,7 +77,8 @@ function migrateState(state: PersistedState): PersistedState {
 
 export function updateMastery(
   state: PersistedState,
-  result: Result
+  result: Result,
+  timestamp: number = Date.now()
 ): PersistedState {
   const existing = state.mastery[result.bindingId] ?? {
     bindingId: result.bindingId,
@@ -97,7 +99,7 @@ export function updateMastery(
     attempts: newAttempts,
     successes: newSuccesses,
     avgReactionMs: newAvgReactionMs,
-    lastSeen: Date.now(),
+    lastSeen: timestamp,
   };
   
   return {
@@ -109,19 +111,37 @@ export function updateMastery(
   };
 }
 
-export function getMasteryScore(record: MasteryRecord): number {
+export function getMasteryScore(record: MasteryRecord, currentTime: number = Date.now()): number {
   if (record.attempts === 0) return 0;
   const successRate = record.successes / record.attempts;
   const speedFactor = Math.max(0, 1 - record.avgReactionMs / 5000);
-  const decayFactor = Math.exp(-(Date.now() - record.lastSeen) / (7 * 24 * 60 * 60 * 1000));
+  const decayFactor = Math.exp(-(currentTime - record.lastSeen) / (7 * 24 * 60 * 60 * 1000));
   return successRate * 0.5 + speedFactor * 0.3 + decayFactor * 0.2;
+}
+
+export function computeSessionStats(
+  prevStats: SessionStats,
+  result: Result
+): SessionStats {
+  const totalAttempts = prevStats.totalAttempts + 1;
+  const correctAttempts = prevStats.correctAttempts + (result.success ? 1 : 0);
+  const avgReactionMs = result.success
+    ? (prevStats.avgReactionMs * prevStats.correctAttempts + result.reactionMs) / correctAttempts
+    : prevStats.avgReactionMs;
+  
+  return {
+    ...prevStats,
+    totalAttempts,
+    correctAttempts,
+    avgReactionMs,
+  };
 }
 
 export type GameAction =
   | { type: "SELECT_TOOL"; tool: ToolDefinition }
   | { type: "START_SESSION" }
   | { type: "PRESENT_CHALLENGE"; challenge: Challenge }
-  | { type: "INPUT_RECEIVED"; chord: KeyChord; buffer: KeyChord[] }
+  | { type: "INPUT_RECEIVED"; chord: KeyChord; buffer: KeyChord[]; timestamp: number }
   | { type: "CHALLENGE_SUCCESS"; result: Result }
   | { type: "CHALLENGE_FAILED"; reason: FailureReason }
   | { type: "NEXT_CHALLENGE" }
@@ -146,7 +166,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const challenge = state.type === "prompt" ? state.challenge : state.challenge;
       const buffer: InputBuffer = {
         sequence: action.buffer,
-        lastInputTime: Date.now(),
+        lastInputTime: action.timestamp,
       };
       return { type: "listening", challenge, buffer };
     

@@ -78,7 +78,8 @@ function computeUIHintsForChallenge(mode: GameMode, settings: GameSettings): Cha
 export function createChallenge(
   binding: Binding,
   mode: GameMode,
-  settings: GameSettings = { assistMode: false, reducedMotion: false, sequenceTimeout: 1000, challengeTimeout: null }
+  settings: GameSettings = { assistMode: false, reducedMotion: false, sequenceTimeout: 1000, challengeTimeout: null },
+  timestamp: number = Date.now()
 ): Challenge {
   const prompt = mode === "reflex"
     ? binding.action
@@ -89,7 +90,7 @@ export function createChallenge(
     binding,
     prompt,
     context: mode === "scenario" ? generateContext(binding) : undefined,
-    startTime: Date.now(),
+    startTimestamp: timestamp,
     uiHints: computeUIHintsForChallenge(mode, settings),
   };
 }
@@ -174,12 +175,13 @@ export function evaluateInput(
 export function createResult(
   challenge: Challenge,
   inputSequence: KeyChord[],
-  success: boolean
+  success: boolean,
+  timestamp: number = Date.now()
 ): Result {
   return {
     challengeId: challenge.id,
     bindingId: challenge.binding.id,
-    reactionMs: Date.now() - challenge.startTime,
+    reactionMs: timestamp - challenge.startTimestamp,
     success,
     inputSequence,
   };
@@ -244,10 +246,11 @@ export function getBindingsByCategory(
   const grouped: Record<string, Binding[]> = {};
   
   for (const binding of tool.bindings) {
-    if (!grouped[binding.category]) {
-      grouped[binding.category] = [];
+    const category = binding.categoryOverride ?? binding.category;
+    if (!grouped[category]) {
+      grouped[category] = [];
     }
-    grouped[binding.category].push(binding);
+    grouped[category].push(binding);
   }
   
   return grouped;

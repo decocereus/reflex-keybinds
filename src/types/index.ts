@@ -64,10 +64,11 @@ export type Binding = {
   id: string;
   tool: ToolId;
   mode?: ModeId;
-  actionId?: string;
+  actionId: string;
   action: string;
   sequence: KeyChord[];
   category: CategoryId;
+  categoryOverride?: CategoryId;
   difficulty: 1 | 2 | 3 | 4 | 5;
   description?: string;
   context?: ContextRule[];
@@ -101,7 +102,7 @@ export type Challenge = {
   binding: Binding;
   prompt: string;
   context?: Record<string, unknown>;
-  startTime: number;
+  startTimestamp: number;
   uiHints: ChallengeUIHints;
 };
 
@@ -147,7 +148,7 @@ export type GameSettings = {
 // Input matching result with ambiguity support
 export type MatchResult =
   | { type: "none" }
-  | { type: "partial"; possibleBindings?: string[] }
+  | { type: "partial"; candidates: string[] }
   | { type: "exact"; bindingId: string };
 
 export type MasteryRecord = {
